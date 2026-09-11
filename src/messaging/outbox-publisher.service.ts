@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Producer } from 'kafkajs';
 import { DatabaseService } from '../database/database.service';
+import { kafkaConfig } from './kafka.config';
 
 interface OutboxRow {
   id: string;
@@ -29,30 +30,19 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const brokers = this.config.get<string>('KAFKA_BROKERS');
-    if (!brokers) {
+    const connection = kafkaConfig(this.config);
+    if (!connection) {
       this.logger.warn(
         'KAFKA_BROKERS is not configured; outbox events remain durable for later delivery',
       );
       return;
     }
-    const username = this.config.get<string>('KAFKA_SASL_USERNAME');
-    const password = this.config.get<string>('KAFKA_SASL_PASSWORD');
-    const kafka = new Kafka({
-      clientId: 'restaurant-ordering-api',
-      brokers: brokers.split(',').map((broker) => broker.trim()),
-      // Event Hubs requires a longer request timeout for idempotent producers.
-      requestTimeout: 60_000,
-      ssl: this.config.get('KAFKA_SSL', 'true') === 'true',
-      sasl:
-        username && password
-          ? { mechanism: 'plain', username, password }
-          : undefined,
-    });
+    const kafka = new Kafka(connection);
     this.producer = kafka.producer({
       allowAutoTopicCreation: false,
       idempotent: true,
       metadataMaxAge: 180_000,
+      maxInFlightRequests: 1,
     });
     await this.producer.connect();
     this.timer = setInterval(() => void this.publishBatch(), 250);
@@ -86,6 +76,7 @@ export class OutboxPublisherService implements OnModuleInit, OnModuleDestroy {
         await producer.send({
           topic: this.config.get('KAFKA_ORDER_TOPIC', 'orders.v1'),
           acks: -1,
+          timeout: 60_000,
           messages: result.rows.map((event) => ({
             key: event.partition_key,
             value: JSON.stringify({

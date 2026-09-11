@@ -107,6 +107,7 @@ describe('OutboxPublisherService', () => {
     expect(send).toHaveBeenCalledWith({
       topic: 'orders.v1',
       acks: -1,
+      timeout: 60_000,
       messages: [
         {
           key: 'branch',
