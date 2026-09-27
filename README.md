@@ -38,6 +38,12 @@ npm install
 
 Use an Azure PostgreSQL connection string in `DATABASE_URL` and set `DATABASE_SSL=true` for Azure. Budget `DATABASE_POOL_SIZE` across all replicas, replace the example webhook token, and configure the Azure Kafka-compatible endpoint through the `KAFKA_*` variables. Never commit `.env` or bank credentials. See [Azure development database setup](infra/README.md) for the infrastructure definition and credential handling.
 
+For the existing Azure Event Hubs development deployment, follow
+[the infrastructure guide](./infra/README.md#azure-event-hubs-for-kafka).
+[The Azure Kafka setup guide](./infra/azure/README.md) also includes an optional
+Bicep template for a separate new namespace. Production startup now requires
+`KAFKA_BROKERS`; development can leave it empty to retain events in the outbox.
+
 ## Local development
 
 Start Docker Desktop, then run:
