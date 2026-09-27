@@ -20,7 +20,7 @@ docker run -d --name "$database" --network "$network" --network-alias database \
   -e POSTGRES_USER=qa -e POSTGRES_PASSWORD=qa_test_only -e POSTGRES_DB=restaurant \
   postgres:17-alpine >/dev/null
 ready=false
-for attempt in {1..30}; do
+for _attempt in {1..30}; do
   if docker exec "$database" pg_isready -U qa -d restaurant >/dev/null 2>&1; then
     ready=true
     break
@@ -39,7 +39,7 @@ docker run -d --name "$app" --network "$network" \
   -e KAFKA_BROKERS= -e KBANK_WEBHOOK_TOKEN=ci_test_only \
   jaj-api:ci >/dev/null
 ready=false
-for attempt in {1..30}; do
+for _attempt in {1..30}; do
   if docker exec "$app" node -e '
     const base = "http://127.0.0.1:3000/api";
     (async () => {
